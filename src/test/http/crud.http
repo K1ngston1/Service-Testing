@@ -1,0 +1,32 @@
+### GET All Patients
+GET http://localhost:8080/api/patients/
+
+### GET Patient by ID
+GET http://localhost:8080/patients/680374dd3bc81dc9fd7a660b
+
+### DELETE Patient by ID
+DELETE http://localhost:8080/patients/680374dd3bc81dc9fd7a660b
+
+### Create Patient
+POST http://localhost:8080/patients/
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-01-01",
+  "gender": "Male",
+  "email": "john.doe@example.com"
+}
+
+#### Update Patient
+PUT http://localhost:8080/patients/680374dd3bc81dc9fd7a660b
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-01-01",
+  "gender": "Male",
+  "email": "john_first@newemail.com"
+}
