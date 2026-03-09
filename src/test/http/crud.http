@@ -1,32 +1,20 @@
 ### GET All Patients
-GET http://localhost:8080/api/patients/
 
+http://localhost:8080
 ### GET Patient by ID
-GET http://localhost:8080/patients/680374dd3bc81dc9fd7a660b
+GET http://localhost:8080/weather
 
 ### DELETE Patient by ID
-DELETE http://localhost:8080/patients/680374dd3bc81dc9fd7a660b
+GET http://localhost:8080/weather/Kyiv
 
 ### Create Patient
-POST http://localhost:8080/patients/
+POST http://localhost:8080/weather
 Content-Type: application/json
 
 {
-  "firstName": "John",
-  "lastName": "Doe",
-  "dateOfBirth": "1990-01-01",
-  "gender": "Male",
-  "email": "john.doe@example.com"
+"city": "Odesa",
+"temperature": 16.3,
+"description": "Windy"
 }
 
-#### Update Patient
-PUT http://localhost:8080/patients/680374dd3bc81dc9fd7a660b
-Content-Type: application/json
 
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "dateOfBirth": "1990-01-01",
-  "gender": "Male",
-  "email": "john_first@newemail.com"
-}
