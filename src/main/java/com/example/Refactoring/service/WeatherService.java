@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.List;
+import java.util.Map;
+
 @Service
 public class WeatherService {
 
@@ -31,33 +34,32 @@ public class WeatherService {
 
     @Cacheable(value = "weatherCache", key = "#city")
     public Weather getWeatherByCity(String city) {
-
-        logger.info("Requesting weather for city: {}", city);
-
-        String url = UriComponentsBuilder
-                .fromHttpUrl("https://api.openweathermap.org/data/2.5/weather")
-                .queryParam("q", city)
-                .queryParam("appid", API_KEY)
-                .queryParam("units", "metric")
-                .toUriString();
+        if (city == null || city.isEmpty()) {
+            throw new IllegalArgumentException("City cannot be empty");
+        }
 
         try {
+            String url = String.format(
+                    "https://api.openweathermap.org/data/2.5/weather?q=%s&units=metric&appid=%s",
+                    city,
+                    API_KEY
+            );
 
-            String response = restTemplate.getForObject(url, String.class);
+            Map response = restTemplate.getForObject(url, Map.class);
 
-            logger.info("Response received from OpenWeather");
+            if (response == null || response.get("main") == null) {
+                return new Weather(city, 0.0, "API Error");
+            }
 
-            JsonNode root = objectMapper.readTree(response);
-
-            double temp = root.path("main").path("temp").asDouble();
-            String description = root.path("weather").get(0).path("description").asText();
+            Map<String, Object> main = (Map<String, Object>) response.get("main");
+            double temp = ((Number) main.get("temp")).doubleValue();
+            String description = ((Map<String, Object>) ((List) response.get("weather")).get(0))
+                    .get("description").toString();
 
             return new Weather(city, temp, description);
 
         } catch (Exception e) {
-
             logger.error("Error while requesting weather API: {}", e.getMessage());
-
             return new Weather(city, 0.0, "API Error");
         }
     }

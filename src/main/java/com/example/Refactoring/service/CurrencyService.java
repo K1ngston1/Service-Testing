@@ -30,30 +30,38 @@ public class CurrencyService {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyService.class);
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String API_URL = "https://api.exchangerate.host/latest";
+    private final String API_URL = "https://hexarate.paikama.co/api/rates/EUR/UAH/latest";
 
-    @Cacheable(value = "currencyCache", key = "#symbol")
+    @Cacheable(value = "currencyCache")
     public Currency getCurrencyRate(String symbol) {
-
         logger.info("Requesting currency rate for {}", symbol);
 
         try {
 
             Map response = restTemplate.getForObject(API_URL, Map.class);
 
-            Map<String, Double> rates = (Map<String, Double>) response.get("rates");
+            if (response == null || !response.containsKey("data")) {
+                logger.error("Currency API response is invalid: {}", response);
+                return new Currency(symbol.toUpperCase(), 0.0);
+            }
 
-            double rate = rates.getOrDefault(symbol.toUpperCase(), 0.0);
+            Map<String, Object> data = (Map<String, Object>) response.get("data");
+            double rate = ((Number) data.get("mid")).doubleValue(); // беремо mid
 
             logger.info("Currency rate received: {} = {}", symbol, rate);
-
             return new Currency(symbol.toUpperCase(), rate);
 
         } catch (Exception e) {
-
             logger.error("Currency API error: {}", e.getMessage());
-
             return new Currency(symbol.toUpperCase(), 0.0);
         }
+    }
+
+    public String getUahRates() {
+        Currency uah = getCurrencyRate("UAH");
+        if (uah.getRate() == 0.0) {
+            return "⚠️ Could not fetch UAH rate at the moment";
+        }
+        return "💱 1 EUR = " + uah.getRate() + " UAH";
     }
 }
