@@ -9,62 +9,57 @@ package com.example.Refactoring.service;
 */
 
 
-import com.example.Refactoring.controller.UserProfile;
+import com.example.Refactoring.model.UserProfile;
 import com.example.Refactoring.repository.UserRepository;
 import org.springframework.stereotype.Service;
-
-
+import java.util.List;
 
 @Service
 public class UserService {
 
     private final UserRepository repository;
 
-    public UserService(UserRepository repository){
+    public UserService(UserRepository repository) {
         this.repository = repository;
     }
 
-    public UserProfile getOrCreateUser(Long chatId,String name){
-
+    public UserProfile getOrCreateUser(Long chatId, String name) {
         return repository.findById(chatId)
-                .orElseGet(() ->
-                        repository.save(new UserProfile(chatId,name)));
+                .orElseGet(() -> repository.save(new UserProfile(chatId, name)));
     }
 
-    public void register(Long chatId){
-
+    public void register(Long chatId) {
         UserProfile user = repository.findById(chatId).orElseThrow();
-
         user.setRegistered(true);
-
         repository.save(user);
     }
 
-    public void setCity(Long chatId,String city){
-
+    public void setCity(Long chatId, String city) {
         UserProfile user = repository.findById(chatId).orElseThrow();
-
         user.setFavoriteCity(city);
-
         repository.save(user);
     }
 
-    public void setLanguage(Long chatId,String lang){
-
+    public void setLanguage(Long chatId, String lang) {
         UserProfile user = repository.findById(chatId).orElseThrow();
-
         user.setLanguage(lang);
-
         repository.save(user);
     }
 
-    public void setTimeFormat(Long chatId,String format){
-
+    public void setTimeFormat(Long chatId, String format) {
         UserProfile user = repository.findById(chatId).orElseThrow();
-
         user.setTimeFormat(format);
-
         repository.save(user);
+    }
+
+
+
+    public void saveUser(UserProfile user) {
+        repository.save(user);
+    }
+
+    public List<UserProfile> getAllUsers() {
+        return repository.findAll();
     }
 
 }

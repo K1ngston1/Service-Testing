@@ -9,7 +9,7 @@ package com.example.Refactoring.repository;
 */
 
 
-import com.example.Refactoring.controller.UserProfile;
+import com.example.Refactoring.model.UserProfile;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 

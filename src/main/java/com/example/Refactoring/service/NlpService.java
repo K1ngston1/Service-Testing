@@ -1,5 +1,6 @@
 package com.example.Refactoring.service;
 
+import com.example.Refactoring.model.Reminder;
 import opennlp.tools.namefind.NameFinderME;
 import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.tokenize.Tokenizer;
@@ -97,6 +98,11 @@ public class NlpService {
 
         }
 
+
+        if (text.toLowerCase().contains("нагадай") || text.toLowerCase().contains("remind")) {
+            return "reminder";
+        }
+
         // ---- ВАЛЮТА ----
 
         if(Arrays.stream(tokensLower).anyMatch(t ->
@@ -151,6 +157,29 @@ public class NlpService {
                 return "";
         }
 
+    }
+
+    public Reminder extractReminder(String text) {
+        // Початкові значення
+        String date = "";
+        String time = "";
+        String message = "";
+
+        // regex для часу: 9:00, 09:30 тощо
+        java.util.regex.Pattern timePattern = java.util.regex.Pattern.compile("(\\d{1,2}:\\d{2})");
+        java.util.regex.Matcher timeMatcher = timePattern.matcher(text);
+        if (timeMatcher.find()) time = timeMatcher.group(1);
+
+        // Просте визначення дати
+        String lowerText = text.toLowerCase();
+        if (lowerText.contains("завтра")) date = "tomorrow";
+        else if (lowerText.contains("сьогодні")) date = "today";
+
+        // Текст нагадування після ключових слів "про"
+        int idx = lowerText.indexOf("про");
+        if (idx != -1) message = text.substring(idx + 3).trim();
+
+        return new Reminder(date, time, message);
     }
 
     // ---------------- CITY ----------------
@@ -227,5 +256,6 @@ public class NlpService {
         return sb.toString();
 
     }
+
 
 }
