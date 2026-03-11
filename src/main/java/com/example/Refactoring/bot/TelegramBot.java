@@ -206,27 +206,43 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public String getBotToken() { return token; }
 
-
     @Scheduled(fixedRate = 60000)
     public void sendReminders() {
+
         LocalDateTime now = LocalDateTime.now();
 
         for (UserProfile user : userService.getAllUsers()) {
+
             List<Reminder> toRemove = new ArrayList<>();
 
             for (Reminder r : user.getReminders()) {
-                // Перевіряємо, що час не порожній
-                if (r.getTime() != null && !r.getTime().isEmpty()) {
-                    // Конвертуємо String у LocalTime
-                    LocalTime reminderTime = LocalTime.parse(r.getTime(), DateTimeFormatter.ofPattern("H:mm"));
 
-                    if (r.getDate().equals(now.toLocalDate()) &&
-                            reminderTime.getHour() == now.getHour() &&
-                            reminderTime.getMinute() == now.getMinute()) {
+                if (r.getTime() == null || r.getTime().isEmpty()) continue;
 
-                        sendMessage(user.getChatId(), "⏰ Reminder: " + r.getMessage());
-                        toRemove.add(r);
-                    }
+                LocalTime reminderTime =
+                        LocalTime.parse(r.getTime(), DateTimeFormatter.ofPattern("H:mm"));
+
+                // --- convert date ---
+                LocalDate reminderDate;
+
+                if (r.getDate().equals("today"))
+                    reminderDate = LocalDate.now();
+
+                else if (r.getDate().equals("tomorrow"))
+                    reminderDate = LocalDate.now().plusDays(1);
+
+                else
+                    continue;
+
+                // --- check ---
+                if (reminderDate.equals(now.toLocalDate()) &&
+                        reminderTime.getHour() == now.getHour() &&
+                        reminderTime.getMinute() == now.getMinute()) {
+
+                    sendMessage(user.getChatId(),
+                            "⏰ Reminder: " + r.getMessage());
+
+                    toRemove.add(r);
                 }
             }
 
