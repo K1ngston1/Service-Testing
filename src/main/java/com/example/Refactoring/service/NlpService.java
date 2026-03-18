@@ -160,24 +160,45 @@ public class NlpService {
     }
 
     public Reminder extractReminder(String text) {
-        // Початкові значення
+
         String date = "";
         String time = "";
         String message = "";
 
-        // regex для часу: 9:00, 09:30 тощо
-        java.util.regex.Pattern timePattern = java.util.regex.Pattern.compile("(\\d{1,2}:\\d{2})");
+        String lower = text.toLowerCase();
+
+        // -------- TIME --------
+        java.util.regex.Pattern timePattern =
+                java.util.regex.Pattern.compile("(\\d{1,2}:\\d{2})");
+
         java.util.regex.Matcher timeMatcher = timePattern.matcher(text);
-        if (timeMatcher.find()) time = timeMatcher.group(1);
 
-        // Просте визначення дати
-        String lowerText = text.toLowerCase();
-        if (lowerText.contains("завтра")) date = "tomorrow";
-        else if (lowerText.contains("сьогодні")) date = "today";
+        if (timeMatcher.find()) {
+            time = timeMatcher.group(1);
+        }
 
-        // Текст нагадування після ключових слів "про"
-        int idx = lowerText.indexOf("про");
-        if (idx != -1) message = text.substring(idx + 3).trim();
+        // -------- DATE --------
+        if (lower.contains("завтра") || lower.contains("tomorrow")) {
+            date = "tomorrow";
+        }
+        else if (lower.contains("сьогодні") || lower.contains("today")) {
+            date = "today";
+        }
+
+        // -------- MESSAGE --------
+        int idx = lower.indexOf("про");
+
+        if (idx != -1) {
+            message = text.substring(idx + 3).trim();
+        }
+        else {
+
+            idx = lower.indexOf("about");
+
+            if (idx != -1) {
+                message = text.substring(idx + 5).trim();
+            }
+        }
 
         return new Reminder(date, time, message);
     }

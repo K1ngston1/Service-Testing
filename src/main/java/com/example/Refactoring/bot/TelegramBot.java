@@ -31,7 +31,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final NlpService nlpService;
     private final UserService userService;
 
-
     @Value("${telegram.bot.username}")
     private String username;
 
@@ -59,34 +58,18 @@ public class TelegramBot extends TelegramLongPollingBot {
         Long chatId = update.getMessage().getChatId();
         String name = update.getMessage().getFrom().getFirstName();
 
-
-        String intent = nlpService.detectIntent(text);
-        String param = nlpService.extractParameter(text, intent);
-
-        // отримуємо або створюємо профіль
         UserProfile user = userService.getOrCreateUser(chatId, name);
 
         String response;
 
-        // ---------------- REGISTER ----------------
+        // ================= COMMANDS FIRST =================
+
         if (text.equals("/register")) {
             userService.register(chatId);
-            response = """
-                    ✅ Registration completed
-
-                    Configure profile:
-                    /setcity Kyiv
-                    /setlanguage en
-                    /settime 24h
-
-                    View profile:
-                    /profile
-                    """;
-            sendMessage(chatId, response);
+            sendMessage(chatId, "✅ Registration completed");
             return;
         }
 
-        // ---------------- PROFILE ----------------
         if (text.equals("/profile")) {
             response =
                     "👤 Profile\n\n" +
@@ -98,92 +81,154 @@ public class TelegramBot extends TelegramLongPollingBot {
             return;
         }
 
-        // ---------------- CITY ----------------
         if (text.startsWith("/setcity")) {
             String city = text.replace("/setcity", "").trim();
-            if (city.isEmpty()) {
-                response = "❗ Usage:\n/setcity Kyiv";
-            } else {
+            if (city.isEmpty()) response = "❗ /setcity Kyiv";
+            else {
                 userService.setCity(chatId, city);
-                response = "✅ City updated: " + city;
+                response = "✅ City updated";
             }
             sendMessage(chatId, response);
             return;
         }
 
-        // ---------------- LANGUAGE ----------------
         if (text.startsWith("/setlanguage")) {
             String lang = text.replace("/setlanguage", "").trim();
-            if (lang.isEmpty()) {
-                response = "❗ Usage:\n/setlanguage en";
-            } else {
+            if (lang.isEmpty()) response = "❗ /setlanguage en";
+            else {
                 userService.setLanguage(chatId, lang);
-                response = "🌍 Language updated: " + lang;
+                response = "🌍 Language updated";
             }
             sendMessage(chatId, response);
             return;
         }
 
-        // ---------------- TIME FORMAT ----------------
         if (text.startsWith("/settime")) {
             String format = text.replace("/settime", "").trim();
-            if (format.isEmpty()) {
-                response = "❗ Usage:\n/settime 24h";
-            } else {
+            if (format.isEmpty()) response = "❗ /settime 24h";
+            else {
                 userService.setTimeFormat(chatId, format);
-                response = "⏰ Time format updated: " + format;
+                response = "⏰ Time updated";
             }
             sendMessage(chatId, response);
             return;
         }
 
-        // ---------------- REMINDER ----------------
+        // ---------- SHOW ----------
+        if (text.equals("/reminders")) {
+
+            List<Reminder> reminders = userService.getReminders(chatId);
+
+            if (reminders.isEmpty()) {
+                response = "📭 No reminders";
+            } else {
+                StringBuilder sb = new StringBuilder("📋 Your reminders:\n\n");
+
+                for (int i = 0; i < reminders.size(); i++) {
+                    Reminder r = reminders.get(i);
+                    sb.append(i).append(") ")
+                            .append(r.getDate()).append(" ")
+                            .append(r.getTime())
+                            .append(" - ")
+                            .append(r.getMessage())
+                            .append("\n");
+                }
+                response = sb.toString();
+            }
+
+            sendMessage(chatId, response);
+            return;
+        }
+
+        // ---------- DELETE ----------
+        if (text.startsWith("/deletereminder")) {
+            try {
+                int index = Integer.parseInt(text.split(" ")[1]);
+                userService.deleteReminder(chatId, index);
+                response = "🗑 Deleted";
+            } catch (Exception e) {
+                response = "❗ /deletereminder 0";
+            }
+            sendMessage(chatId, response);
+            return;
+        }
+
+        // ---------- UPDATE ----------
+        if (text.startsWith("/editreminder")) {
+
+            try {
+                String[] parts = text.split(" ", 5);
+
+                int index = Integer.parseInt(parts[1]);
+                String dateRaw = parts[2];
+                String time = parts[3];
+                String message = parts[4];
+
+                String date;
+
+                if (dateRaw.equalsIgnoreCase("завтра")) date = "tomorrow";
+                else if (dateRaw.equalsIgnoreCase("сьогодні")) date = "today";
+                else date = dateRaw;
+
+                Reminder updated = new Reminder(date, time, message);
+
+                userService.updateReminder(chatId, index, updated);
+
+                response = "✏️ Updated";
+
+            } catch (Exception e) {
+                response = "❗ /editreminder 0 tomorrow 10:00 text";
+            }
+
+            sendMessage(chatId, response);
+            return;
+        }
+
+        // ================= NLP AFTER =================
+
+        String intent = nlpService.detectIntent(text);
+        String param = nlpService.extractParameter(text, intent);
+
+        // ---------- CREATE ----------
         if (intent.equals("reminder")) {
+
             Reminder reminder = nlpService.extractReminder(text);
 
             if (reminder.getMessage().isEmpty()) {
-                response = "❗ Could not parse reminder. Example:\n" +
-                        "Нагадай мені завтра о 9:00 про зустріч";
+                response = "❗ Example:\nНагадай завтра о 9:00 про зустріч";
             } else {
-                user.addReminder(reminder);  // потрібно реалізувати метод addReminder у UserProfile
-                userService.saveUser(user);  // метод saveUser зберігає зміни у MongoDB
-                response = "✅ Reminder set:\n" +
-                        "Date: " + reminder.getDate() +
-                        "\nTime: " + reminder.getTime() +
-                        "\nMessage: " + reminder.getMessage();
+                userService.addReminder(chatId, reminder);
+                response = "✅ Reminder saved";
             }
 
             sendMessage(chatId, response);
             return;
         }
 
+        // ---------- OTHER ----------
         switch (intent) {
+
             case "weather" -> {
                 String city = param.isEmpty() ? user.getFavoriteCity() : param;
+
                 try {
                     Weather weather = weatherService.getWeatherByCity(city);
-                    response = "🌤 Weather in " + city +
-                            "\nTemperature: " + weather.getTemperature() +
-                            "\nDescription: " + weather.getDescription();
+                    response = "🌤 " + city +
+                            "\nTemp: " + weather.getTemperature();
                 } catch (Exception e) {
-                    response = "⚠️ Could not fetch weather for " + city;
+                    response = "⚠️ Weather error";
                 }
             }
+
             case "currency" -> {
                 try {
                     response = currencyService.getUahRates();
                 } catch (Exception e) {
-                    response = "⚠️ Could not fetch currency rates";
+                    response = "⚠️ Currency error";
                 }
             }
-            default -> response =
-                    "🤖 I didn't understand.\n\nTry:\n" +
-                            "/register\n" +
-                            "/profile\n" +
-                            "weather in Kyiv\n" +
-                            "Скажи погоду в Львові\n" +
-                            "50 USD\n" +
-                            "$100";
+
+            default -> response = "🤖 Unknown command";
         }
 
         sendMessage(chatId, response);
@@ -193,6 +238,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         SendMessage message = new SendMessage();
         message.setChatId(chatId.toString());
         message.setText(text);
+
         try {
             execute(message);
         } catch (TelegramApiException e) {
@@ -206,6 +252,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public String getBotToken() { return token; }
 
+    // ---------- SCHEDULER ----------
     @Scheduled(fixedRate = 60000)
     public void sendReminders() {
 
@@ -219,25 +266,20 @@ public class TelegramBot extends TelegramLongPollingBot {
 
                 if (r.getTime() == null || r.getTime().isEmpty()) continue;
 
-                LocalTime reminderTime =
+                LocalTime time =
                         LocalTime.parse(r.getTime(), DateTimeFormatter.ofPattern("H:mm"));
 
-                // --- convert date ---
-                LocalDate reminderDate;
+                LocalDate date;
 
-                if (r.getDate().equals("today"))
-                    reminderDate = LocalDate.now();
+                if ("today".equals(r.getDate()))
+                    date = LocalDate.now();
+                else if ("tomorrow".equals(r.getDate()))
+                    date = LocalDate.now().plusDays(1);
+                else continue;
 
-                else if (r.getDate().equals("tomorrow"))
-                    reminderDate = LocalDate.now().plusDays(1);
-
-                else
-                    continue;
-
-                // --- check ---
-                if (reminderDate.equals(now.toLocalDate()) &&
-                        reminderTime.getHour() == now.getHour() &&
-                        reminderTime.getMinute() == now.getMinute()) {
+                if (date.equals(now.toLocalDate()) &&
+                        time.getHour() == now.getHour() &&
+                        time.getMinute() == now.getMinute()) {
 
                     sendMessage(user.getChatId(),
                             "⏰ Reminder: " + r.getMessage());

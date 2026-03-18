@@ -45,4 +45,17 @@ public class UserProfile {
     public void setTimeFormat(String timeFormat) { this.timeFormat = timeFormat; }
     public void setRegistered(boolean registered) { this.registered = registered; }
     public void addReminder(Reminder reminder) { this.reminders.add(reminder); }
+
+    public void removeReminder(int index) {
+        if (index >= 0 && index < reminders.size()) {
+            reminders.remove(index);
+        }
+    }
+
+    public void updateReminder(int index, Reminder reminder) {
+        if (index >= 0 && index < reminders.size()) {
+            reminders.set(index, reminder);
+        }
+    }
 }
+

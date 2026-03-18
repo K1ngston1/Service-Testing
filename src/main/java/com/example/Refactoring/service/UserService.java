@@ -9,6 +9,7 @@ package com.example.Refactoring.service;
 */
 
 
+import com.example.Refactoring.model.Reminder;
 import com.example.Refactoring.model.UserProfile;
 import com.example.Refactoring.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,33 @@ public class UserService {
         repository.save(user);
     }
 
+    public void addReminder(Long chatId, Reminder reminder) {
+        UserProfile user = repository.findById(chatId).orElseThrow();
+        user.addReminder(reminder);
+        repository.save(user);
+    }
+
+    public List<Reminder> getReminders(Long chatId) {
+        return repository.findById(chatId)
+                .map(UserProfile::getReminders)
+                .orElse(List.of());
+    }
+
+    public void deleteReminder(Long chatId, int index) {
+        UserProfile user = repository.findById(chatId).orElseThrow();
+        user.removeReminder(index);
+        repository.save(user);
+    }
+    public void updateReminder(Long chatId, int index, Reminder updatedReminder) {
+        UserProfile user = repository.findById(chatId).orElseThrow();
+
+        if (user.getReminders() == null || index < 0 || index >= user.getReminders().size()) {
+            throw new RuntimeException("Invalid reminder index");
+        }
+
+        user.getReminders().set(index, updatedReminder);
+        repository.save(user);
+    }
 
 
     public void saveUser(UserProfile user) {
